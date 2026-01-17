@@ -83,6 +83,7 @@ export function useSpeechRecognition({
 
   const recognitionRef = useRef<ISpeechRecognition | null>(null);
   const shouldRestartRef = useRef(false);
+  const isListeningRef = useRef(false);
   const isSupported = !!getSpeechRecognition();
 
   // Use refs for callbacks to avoid recreating recognition on every render
@@ -103,10 +104,18 @@ export function useSpeechRecognition({
       return;
     }
 
+    // If already listening, don't restart
+    if (recognitionRef.current && shouldRestartRef.current) {
+      console.log('[Speech] Already listening, skipping start');
+      return;
+    }
+
     // Stop any existing recognition
     if (recognitionRef.current) {
       recognitionRef.current.abort();
     }
+
+    shouldRestartRef.current = true;
 
     const recognition = new SpeechRecognitionClass();
     recognition.continuous = continuous;
@@ -116,9 +125,9 @@ export function useSpeechRecognition({
 
     recognition.onstart = () => {
       console.log('[Speech] Recognition started');
+      isListeningRef.current = true;
       setIsListening(true);
       setError(null);
-      shouldRestartRef.current = true;
     };
 
     recognition.onresult = (event: ISpeechRecognitionEvent) => {
@@ -176,18 +185,24 @@ export function useSpeechRecognition({
 
     recognition.onend = () => {
       console.log('[Speech] Recognition ended, shouldRestart:', shouldRestartRef.current);
+      isListeningRef.current = false;
       setIsListening(false);
 
       // Auto-restart if we should still be listening
       if (shouldRestartRef.current) {
         setTimeout(() => {
-          if (shouldRestartRef.current && recognitionRef.current) {
+          // Double-check we still want to restart and aren't already listening
+          if (shouldRestartRef.current && !isListeningRef.current) {
             try {
               console.log('[Speech] Restarting recognition...');
-              recognitionRef.current.start();
+              if (recognitionRef.current) {
+                recognitionRef.current.start();
+              }
             } catch (e) {
               console.log('[Speech] Failed to restart:', e);
             }
+          } else {
+            console.log('[Speech] Skip restart - already listening or stopped');
           }
         }, 100);
       }
@@ -204,7 +219,9 @@ export function useSpeechRecognition({
   }, [continuous, interimResults]);
 
   const stop = useCallback(() => {
+    console.log('[Speech] Stop called');
     shouldRestartRef.current = false;
+    isListeningRef.current = false;
     if (recognitionRef.current) {
       recognitionRef.current.abort();
       recognitionRef.current = null;
