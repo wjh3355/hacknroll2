@@ -59,7 +59,7 @@ function gameReducer(state: GameSession, action: GameAction): GameSession {
         const roundBonus = 500 * state.currentRound;
         return {
           ...state,
-          words: newWords,
+          words: getRandomWords(GAME_CONFIG.wordsPerRound), // Get new words for next round
           lastSpokenWord: action.spokenWord,
           score: state.score + 100 + roundBonus,
           currentWordIndex: 0,
@@ -68,8 +68,6 @@ function gameReducer(state: GameSession, action: GameAction): GameSession {
             state.currentBpm + GAME_CONFIG.bpmIncrement,
             GAME_CONFIG.maxBpm
           ),
-          // Get new words for next round
-          // This will be handled by NEXT_ROUND action
         };
       }
 

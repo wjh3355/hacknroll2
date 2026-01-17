@@ -1,5 +1,57 @@
 # Changelog
 
+## Phase 5: Polish
+
+### Added
+- `src/components/game/ScoreDisplay.tsx` - Score display with popup animation on points earned
+
+### Modified
+- `src/components/screens/GameScreen.tsx` - Added round notification, integrated ScoreDisplay
+- `src/styles/game.css` - Added score popup animation, round notification styles
+
+### Notes
+- Score pulses green when points are earned
+- "Round X! Speed up!" notification appears when entering a new round
+- All animations are smooth and non-blocking
+
+---
+
+## Phase 4: Game Loop
+
+### Modified
+- `src/components/screens/CountdownScreen.tsx` - Added microphone permission flow and beat preview sounds
+- `src/contexts/GameContext.tsx` - Fixed round transition to auto-generate new words
+- `src/components/screens/GameScreen.tsx` - Simplified beat handler
+- `src/styles/game.css` - Added microphone permission styles
+
+### Notes
+- Game now requests mic permission during countdown
+- Shows error screen if mic permission is denied
+- Countdown plays beat ticks to help player get in rhythm
+- Round transitions now properly generate new words
+
+---
+
+## Phase 3: Speech Recognition
+
+### Added
+- `src/hooks/useSpeechRecognition.ts` - Web Speech API wrapper with auto-restart and error handling
+- `src/utils/speechMatcher.ts` - Fuzzy matching with Levenshtein distance and common mishears
+- `src/components/game/SpeechFeedback.tsx` - Displays transcript, expected word, and result indicators
+
+### Modified
+- `src/components/screens/GameScreen.tsx` - Integrated speech recognition with game validation
+- `src/styles/game.css` - Added speech feedback styling
+
+### Notes
+- Speech recognition uses interim results for lower latency
+- Fuzzy matching threshold: 0.7 similarity
+- Handles common mishears (e.g., "two" vs "to", "won" vs "one")
+- Auto-restarts on `no-speech` errors
+- SPACE key still works as fallback for testing
+
+---
+
 ## Phase 2: Beat Engine & Audio
 
 ### Added

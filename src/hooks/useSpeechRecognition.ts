@@ -17,24 +17,53 @@ interface SpeechRecognitionReturn {
 }
 
 // Type definitions for Web Speech API
-interface SpeechRecognitionEvent extends Event {
-  results: SpeechRecognitionResultList;
+interface ISpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  maxAlternatives: number;
+  onstart: ((this: ISpeechRecognition, ev: Event) => void) | null;
+  onresult: ((this: ISpeechRecognition, ev: ISpeechRecognitionEvent) => void) | null;
+  onerror: ((this: ISpeechRecognition, ev: ISpeechRecognitionErrorEvent) => void) | null;
+  onend: ((this: ISpeechRecognition, ev: Event) => void) | null;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+}
+
+interface ISpeechRecognitionEvent extends Event {
+  results: ISpeechRecognitionResultList;
   resultIndex: number;
 }
 
-interface SpeechRecognitionErrorEvent extends Event {
+interface ISpeechRecognitionResultList {
+  length: number;
+  [index: number]: ISpeechRecognitionResult;
+}
+
+interface ISpeechRecognitionResult {
+  isFinal: boolean;
+  length: number;
+  [index: number]: ISpeechRecognitionAlternative;
+}
+
+interface ISpeechRecognitionAlternative {
+  transcript: string;
+  confidence: number;
+}
+
+interface ISpeechRecognitionErrorEvent extends Event {
   error: string;
   message: string;
 }
 
 // Get the SpeechRecognition constructor
-const getSpeechRecognition = (): (new () => SpeechRecognition) | null => {
+const getSpeechRecognition = (): (new () => ISpeechRecognition) | null => {
   if (typeof window === 'undefined') return null;
-  return (
-    (window as unknown as { SpeechRecognition?: new () => SpeechRecognition }).SpeechRecognition ||
-    (window as unknown as { webkitSpeechRecognition?: new () => SpeechRecognition }).webkitSpeechRecognition ||
-    null
-  );
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const win = window as any;
+  return win.SpeechRecognition || win.webkitSpeechRecognition || null;
 };
 
 export function useSpeechRecognition({
@@ -47,7 +76,7 @@ export function useSpeechRecognition({
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<ISpeechRecognition | null>(null);
   const shouldRestartRef = useRef(false);
   const isSupported = !!getSpeechRecognition();
 
@@ -76,7 +105,7 @@ export function useSpeechRecognition({
       shouldRestartRef.current = true;
     };
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
+    recognition.onresult = (event: ISpeechRecognitionEvent) => {
       const result = event.results[event.results.length - 1];
       const transcriptText = result[0].transcript.trim().toLowerCase();
       const isFinal = result.isFinal;
@@ -85,7 +114,7 @@ export function useSpeechRecognition({
       onResult(transcriptText, isFinal);
     };
 
-    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+    recognition.onerror = (event: ISpeechRecognitionErrorEvent) => {
       console.log('Speech recognition error:', event.error);
 
       switch (event.error) {
@@ -132,7 +161,7 @@ export function useSpeechRecognition({
       }
     };
 
-    recognitionRef.current = recognition;
+    recognitionRef.current = recognition as ISpeechRecognition;
 
     try {
       recognition.start();

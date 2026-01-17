@@ -75,6 +75,7 @@
 .game-screen {
   justify-content: flex-start;
   padding-top: 2rem;
+  position: relative;
 }
 
 .game-header {
@@ -99,6 +100,49 @@
   font-size: 2rem;
   font-weight: bold;
   color: #f3f4f6;
+  transition: transform 0.1s ease;
+}
+
+.stat-value.score-popup {
+  transform: scale(1.2);
+  color: #22c55e;
+}
+
+/* Round Notification */
+.round-notification {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 2rem;
+  font-weight: bold;
+  color: #fbbf24;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  animation: round-notification-pop 1.5s ease forwards;
+  z-index: 100;
+}
+
+@keyframes round-notification-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+  40% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
 }
 
 .beat-indicator-container {
@@ -134,18 +178,78 @@
 
 .speech-feedback {
   margin-top: 2rem;
-  font-size: 1.2rem;
+  text-align: center;
+  min-height: 6rem;
+}
+
+.listening-status {
+  font-size: 1rem;
   color: #9ca3af;
-  min-height: 2rem;
+  margin-bottom: 0.5rem;
 }
 
 .listening-indicator {
   animation: pulse-opacity 1.5s ease-in-out infinite;
+  color: #22c55e;
+}
+
+.not-listening {
+  color: #6b7280;
 }
 
 @keyframes pulse-opacity {
   0%, 100% { opacity: 0.5; }
   50% { opacity: 1; }
+}
+
+.transcript {
+  font-size: 1.1rem;
+  color: #d1d5db;
+  margin-bottom: 0.5rem;
+}
+
+.transcript strong {
+  color: #f3f4f6;
+}
+
+.expected-word {
+  font-size: 1.2rem;
+  color: #9ca3af;
+}
+
+.expected-word .highlight {
+  color: #3b82f6;
+  font-size: 1.5rem;
+}
+
+.result-indicator {
+  margin-top: 0.5rem;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.result-indicator.correct {
+  color: #22c55e;
+}
+
+.result-indicator.wrong {
+  color: #ef4444;
+}
+
+.result-indicator.missed {
+  color: #f59e0b;
+}
+
+.speech-error {
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.error-icon {
+  font-size: 1.5rem;
 }
 
 /* Countdown Screen */
@@ -166,9 +270,62 @@
   margin-bottom: 2rem;
 }
 
+.countdown-tip {
+  font-size: 1rem;
+  color: #6b7280;
+  margin-top: 2rem;
+}
+
 @keyframes countdown-pulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.1); }
+}
+
+/* Microphone Permission */
+.mic-permission {
+  text-align: center;
+  padding: 2rem;
+}
+
+.mic-permission .mic-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.mic-permission h2 {
+  font-size: 1.5rem;
+  color: #f3f4f6;
+  margin-bottom: 1rem;
+}
+
+.mic-permission p {
+  color: #9ca3af;
+  margin-bottom: 0.5rem;
+}
+
+.mic-permission.error h2 {
+  color: #ef4444;
+}
+
+.mic-hint {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.retry-button {
+  margin-top: 1.5rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.retry-button:hover {
+  background: #2563eb;
 }
 
 /* Game Over Screen */

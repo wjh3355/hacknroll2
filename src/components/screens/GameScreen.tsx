@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGame } from '../../contexts/GameContext';
 import { WordGrid } from '../game/WordGrid';
 import { BeatIndicator } from '../game/BeatIndicator';
+import { SpeechFeedback } from '../game/SpeechFeedback';
+import { ScoreDisplay } from '../game/ScoreDisplay';
 import { useBeatEngine } from '../../hooks/useBeatEngine';
 import { useAudioPlayer } from '../../hooks/useAudioPlayer';
-import { GAME_CONFIG } from '../../utils/constants';
+import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
+import { matchWordWithMishears, extractLastWord } from '../../utils/speechMatcher';
 
 export function GameScreen() {
   const {
@@ -17,17 +20,85 @@ export function GameScreen() {
     dispatch,
   } = useGame();
 
-  const { playBeatTick, playWrong, resumeContext } = useAudioPlayer();
+  const { playBeatTick, playCorrect, playWrong, resumeContext } = useAudioPlayer();
   const hasResumedAudio = useRef(false);
   const wordValidatedRef = useRef(false);
+  const [lastResult, setLastResult] = useState<'correct' | 'wrong' | 'missed' | null>(null);
+  const [speechError, setSpeechError] = useState<string | null>(null);
+  const [showRoundNotification, setShowRoundNotification] = useState(false);
+  const lastRoundRef = useRef(currentRound);
 
-  // Resume audio context on first interaction
+  // Get current expected word
+  const currentWord = words[currentWordIndex]?.text || '';
+
+  // Show notification when round changes
+  useEffect(() => {
+    if (currentRound > lastRoundRef.current) {
+      setShowRoundNotification(true);
+      setTimeout(() => setShowRoundNotification(false), 1500);
+      lastRoundRef.current = currentRound;
+    }
+  }, [currentRound]);
+
+  // Handle speech recognition result
+  const handleSpeechResult = useCallback(
+    (transcript: string, _isFinal: boolean) => {
+      if (state !== 'playing' || wordValidatedRef.current) return;
+
+      const spokenWord = extractLastWord(transcript);
+      const isMatch = matchWordWithMishears(spokenWord, currentWord);
+
+      if (isMatch) {
+        // Correct word spoken
+        wordValidatedRef.current = true;
+        setLastResult('correct');
+        playCorrect();
+        dispatch({
+          type: 'ADVANCE_WORD',
+          correct: true,
+          spokenWord,
+        });
+
+        // Clear result indicator after a moment
+        setTimeout(() => setLastResult(null), 300);
+      }
+    },
+    [state, currentWord, dispatch, playCorrect]
+  );
+
+  const handleSpeechError = useCallback((error: string) => {
+    setSpeechError(error);
+  }, []);
+
+  const {
+    isListening,
+    transcript,
+    start: startListening,
+    stop: stopListening,
+    error: recognitionError,
+  } = useSpeechRecognition({
+    onResult: handleSpeechResult,
+    onError: handleSpeechError,
+  });
+
+  // Resume audio context on mount
   useEffect(() => {
     if (!hasResumedAudio.current) {
       resumeContext();
       hasResumedAudio.current = true;
     }
   }, [resumeContext]);
+
+  // Start/stop speech recognition based on game state
+  useEffect(() => {
+    if (state === 'playing') {
+      startListening();
+    } else {
+      stopListening();
+    }
+
+    return () => stopListening();
+  }, [state, startListening, stopListening]);
 
   // Handle beat event
   const handleBeat = useCallback(
@@ -38,7 +109,8 @@ export function GameScreen() {
       // Check if the previous word was validated
       // If we're past the first beat and the word wasn't validated, it's a miss
       if (beatNumber > 0 && !wordValidatedRef.current) {
-        // Player missed the beat (didn't say anything)
+        // Player missed the beat (didn't say anything or wrong word)
+        setLastResult('missed');
         playWrong();
         dispatch({
           type: 'ADVANCE_WORD',
@@ -50,15 +122,8 @@ export function GameScreen() {
 
       // Reset validation flag for the new beat
       wordValidatedRef.current = false;
-
-      // Handle round completion (after 8 words)
-      const currentIndex = currentWordIndex;
-      if (currentIndex === 0 && beatNumber > 0 && beatNumber % GAME_CONFIG.wordsPerRound === 0) {
-        // New round - get new words
-        dispatch({ type: 'NEXT_ROUND' });
-      }
     },
-    [playBeatTick, playWrong, dispatch, currentWordIndex]
+    [playBeatTick, playWrong, dispatch]
   );
 
   const { isOnBeat } = useBeatEngine({
@@ -67,67 +132,53 @@ export function GameScreen() {
     enabled: state === 'playing',
   });
 
-  // Expose validation function for speech recognition (will be used in Phase 3)
-  // For now, this is a placeholder
+  // Keyboard fallback for testing
   useEffect(() => {
-    // This effect will be updated in Phase 3 to connect speech recognition
-    // For testing, we can add keyboard input
     const handleKeyDown = (e: KeyboardEvent) => {
       if (state !== 'playing') return;
 
       // Press space to simulate saying the correct word (for testing)
       if (e.code === 'Space') {
         e.preventDefault();
-        wordValidatedRef.current = true;
-        dispatch({
-          type: 'ADVANCE_WORD',
-          correct: true,
-          spokenWord: words[currentWordIndex]?.text || null,
-        });
-      }
-
-      // Press X to simulate saying the wrong word (for testing)
-      if (e.code === 'KeyX') {
-        e.preventDefault();
-        wordValidatedRef.current = true;
-        playWrong();
-        dispatch({
-          type: 'ADVANCE_WORD',
-          correct: false,
-          spokenWord: 'wrong',
-        });
+        if (!wordValidatedRef.current) {
+          wordValidatedRef.current = true;
+          setLastResult('correct');
+          playCorrect();
+          dispatch({
+            type: 'ADVANCE_WORD',
+            correct: true,
+            spokenWord: words[currentWordIndex]?.text || null,
+          });
+          setTimeout(() => setLastResult(null), 300);
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [state, dispatch, words, currentWordIndex, playWrong]);
+  }, [state, dispatch, words, currentWordIndex, playCorrect]);
 
   return (
     <div className="screen game-screen">
-      <div className="game-header">
-        <div className="stat">
-          <span className="stat-label">Score</span>
-          <span className="stat-value">{score}</span>
+      <ScoreDisplay score={score} round={currentRound} bpm={currentBpm} />
+
+      {showRoundNotification && (
+        <div className="round-notification">
+          Round {currentRound}! Speed up!
         </div>
-        <div className="stat">
-          <span className="stat-label">Round</span>
-          <span className="stat-value">{currentRound}</span>
-        </div>
-        <div className="stat">
-          <span className="stat-label">BPM</span>
-          <span className="stat-value">{currentBpm}</span>
-        </div>
-      </div>
+      )}
 
       <BeatIndicator isOnBeat={isOnBeat} bpm={currentBpm} />
 
       <WordGrid words={words} currentWordIndex={currentWordIndex} />
 
-      <div className="speech-feedback" id="speech-feedback">
-        <span className="listening-indicator">🎤 Listening...</span>
-        <p className="test-hint">(Press SPACE to simulate correct, X for wrong)</p>
-      </div>
+      <SpeechFeedback
+        isListening={isListening}
+        transcript={transcript}
+        error={speechError || recognitionError}
+        expectedWord={currentWord}
+        lastResult={lastResult}
+      />
     </div>
   );
 }
