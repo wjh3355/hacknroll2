@@ -1,5 +1,20 @@
 # Changelog
 
+## Debug: Speech Recognition Logging
+
+### Added
+- Debug logging to `src/hooks/useSpeechRecognition.ts` - Logs all speech events
+- Debug logging to `src/components/screens/GameScreen.tsx` - Logs word matching
+- `README.md` - Project documentation with usage and debugging instructions
+
+### How to Debug
+1. Open browser DevTools (F12 or Cmd+Option+I)
+2. Go to Console tab
+3. Start the game and speak
+4. Look for `[Speech]` and `[Game]` prefixed logs
+
+---
+
 ## Phase 5: Polish
 
 ### Added

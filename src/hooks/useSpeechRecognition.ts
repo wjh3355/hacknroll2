@@ -80,11 +80,21 @@ export function useSpeechRecognition({
   const shouldRestartRef = useRef(false);
   const isSupported = !!getSpeechRecognition();
 
+  // Use refs for callbacks to avoid recreating recognition on every render
+  const onResultRef = useRef(onResult);
+  const onErrorRef = useRef(onError);
+
+  // Keep refs updated
+  useEffect(() => {
+    onResultRef.current = onResult;
+    onErrorRef.current = onError;
+  }, [onResult, onError]);
+
   const start = useCallback(() => {
     const SpeechRecognitionClass = getSpeechRecognition();
     if (!SpeechRecognitionClass) {
       setError('Speech recognition not supported');
-      onError('Speech recognition not supported in this browser');
+      onErrorRef.current('Speech recognition not supported in this browser');
       return;
     }
 
@@ -100,22 +110,27 @@ export function useSpeechRecognition({
     recognition.maxAlternatives = 3;
 
     recognition.onstart = () => {
+      console.log('[Speech] Recognition started');
       setIsListening(true);
       setError(null);
       shouldRestartRef.current = true;
     };
 
     recognition.onresult = (event: ISpeechRecognitionEvent) => {
+      console.log('[Speech] onresult fired, results:', event.results.length);
       const result = event.results[event.results.length - 1];
       const transcriptText = result[0].transcript.trim().toLowerCase();
       const isFinal = result.isFinal;
+      const confidence = result[0].confidence;
+
+      console.log('[Speech] Transcript:', transcriptText, '| Final:', isFinal, '| Confidence:', confidence);
 
       setTranscript(transcriptText);
-      onResult(transcriptText, isFinal);
+      onResultRef.current(transcriptText, isFinal);
     };
 
     recognition.onerror = (event: ISpeechRecognitionErrorEvent) => {
-      console.log('Speech recognition error:', event.error);
+      console.log('[Speech] Error:', event.error, event.message);
 
       switch (event.error) {
         case 'no-speech':
@@ -123,17 +138,17 @@ export function useSpeechRecognition({
           break;
         case 'audio-capture':
           setError('Microphone not accessible');
-          onError('Microphone not accessible');
+          onErrorRef.current('Microphone not accessible');
           shouldRestartRef.current = false;
           break;
         case 'not-allowed':
           setError('Microphone permission denied');
-          onError('Microphone permission denied');
+          onErrorRef.current('Microphone permission denied');
           shouldRestartRef.current = false;
           break;
         case 'network':
           setError('Network error');
-          onError('Network error - speech recognition may be unavailable');
+          onErrorRef.current('Network error - speech recognition may be unavailable');
           break;
         case 'aborted':
           // Recognition was aborted - this is intentional
@@ -145,6 +160,7 @@ export function useSpeechRecognition({
     };
 
     recognition.onend = () => {
+      console.log('[Speech] Recognition ended, shouldRestart:', shouldRestartRef.current);
       setIsListening(false);
 
       // Auto-restart if we should still be listening
@@ -152,9 +168,10 @@ export function useSpeechRecognition({
         setTimeout(() => {
           if (shouldRestartRef.current && recognitionRef.current) {
             try {
+              console.log('[Speech] Restarting recognition...');
               recognitionRef.current.start();
             } catch (e) {
-              console.log('Failed to restart speech recognition:', e);
+              console.log('[Speech] Failed to restart:', e);
             }
           }
         }, 100);
@@ -169,7 +186,7 @@ export function useSpeechRecognition({
       console.log('Failed to start speech recognition:', e);
       setError('Failed to start speech recognition');
     }
-  }, [continuous, interimResults, onResult, onError]);
+  }, [continuous, interimResults]);
 
   const stop = useCallback(() => {
     shouldRestartRef.current = false;

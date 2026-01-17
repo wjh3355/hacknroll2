@@ -43,10 +43,18 @@ export function GameScreen() {
   // Handle speech recognition result
   const handleSpeechResult = useCallback(
     (transcript: string, _isFinal: boolean) => {
-      if (state !== 'playing' || wordValidatedRef.current) return;
+      console.log('[Game] handleSpeechResult called with:', transcript);
+      console.log('[Game] State:', state, '| Already validated:', wordValidatedRef.current);
+
+      if (state !== 'playing' || wordValidatedRef.current) {
+        console.log('[Game] Skipping - not playing or already validated');
+        return;
+      }
 
       const spokenWord = extractLastWord(transcript);
       const isMatch = matchWordWithMishears(spokenWord, currentWord);
+
+      console.log('[Game] Spoken word:', spokenWord, '| Expected:', currentWord, '| Match:', isMatch);
 
       if (isMatch) {
         // Correct word spoken
