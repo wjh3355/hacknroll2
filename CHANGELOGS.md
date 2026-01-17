@@ -1,5 +1,24 @@
 # Changelog
 
+## Improved Speech Matching & Timing UI
+
+### Added
+- `src/components/game/BeatTimingBar.tsx` - Visual timing indicator showing when to speak
+- `matchAnyAlternative()` function in `speechMatcher.ts` - Checks ALL speech alternatives
+
+### Modified
+- `src/hooks/useSpeechRecognition.ts` - Now returns all speech alternatives (not just first)
+- `src/components/screens/GameScreen.tsx` - Uses all alternatives for matching, added timing bar
+- `src/styles/game.css` - Timing bar styles
+
+### How It Works Now
+1. Speech API returns up to 3 alternative interpretations
+2. Game checks ALL alternatives against target word
+3. If ANY alternative matches, it's accepted
+4. Visual timing bar shows the beat progress
+
+---
+
 ## Debug: Speech Recognition Logging
 
 ### Added

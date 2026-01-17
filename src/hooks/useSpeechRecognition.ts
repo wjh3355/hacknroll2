@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+export interface SpeechAlternative {
+  transcript: string;
+  confidence: number;
+}
+
 interface SpeechRecognitionOptions {
-  onResult: (transcript: string, isFinal: boolean) => void;
+  onResult: (transcript: string, isFinal: boolean, alternatives: SpeechAlternative[]) => void;
   onError: (error: string) => void;
   continuous?: boolean;
   interimResults?: boolean;
@@ -119,14 +124,24 @@ export function useSpeechRecognition({
     recognition.onresult = (event: ISpeechRecognitionEvent) => {
       console.log('[Speech] onresult fired, results:', event.results.length);
       const result = event.results[event.results.length - 1];
-      const transcriptText = result[0].transcript.trim().toLowerCase();
       const isFinal = result.isFinal;
-      const confidence = result[0].confidence;
 
-      console.log('[Speech] Transcript:', transcriptText, '| Final:', isFinal, '| Confidence:', confidence);
+      // Collect ALL alternatives
+      const alternatives: SpeechAlternative[] = [];
+      for (let i = 0; i < result.length; i++) {
+        alternatives.push({
+          transcript: result[i].transcript.trim().toLowerCase(),
+          confidence: result[i].confidence,
+        });
+      }
+
+      const transcriptText = alternatives[0]?.transcript || '';
+
+      console.log('[Speech] Alternatives:', alternatives.map(a => `"${a.transcript}" (${(a.confidence * 100).toFixed(1)}%)`).join(', '));
+      console.log('[Speech] Final:', isFinal);
 
       setTranscript(transcriptText);
-      onResultRef.current(transcriptText, isFinal);
+      onResultRef.current(transcriptText, isFinal, alternatives);
     };
 
     recognition.onerror = (event: ISpeechRecognitionErrorEvent) => {

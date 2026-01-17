@@ -6,7 +6,7 @@ export const GAME_CONFIG: GameConfig = {
   maxBpm: 180,
   wordsPerRound: 8,
   beatToleranceMs: 250,
-  speechMatchThreshold: 0.7,
+  speechMatchThreshold: 0.5,  // Lowered for more forgiving matching
   countdownSeconds: 3,
 };
 

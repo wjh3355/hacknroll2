@@ -135,3 +135,34 @@ export function matchWordWithMishears(
 
   return false;
 }
+
+/**
+ * Check if ANY of the speech alternatives match the expected word
+ * Returns the matching alternative if found, null otherwise
+ */
+export function matchAnyAlternative(
+  alternatives: Array<{ transcript: string; confidence: number }>,
+  expected: string,
+  threshold: number = GAME_CONFIG.speechMatchThreshold
+): { transcript: string; confidence: number } | null {
+  for (const alt of alternatives) {
+    // Extract last word from transcript
+    const lastWord = extractLastWord(alt.transcript);
+
+    // Check if this alternative matches
+    if (matchWordWithMishears(lastWord, expected, threshold)) {
+      console.log(`[Matcher] Match found: "${lastWord}" matches "${expected}"`);
+      return alt;
+    }
+
+    // Also check the full transcript
+    if (matchWordWithMishears(alt.transcript, expected, threshold)) {
+      console.log(`[Matcher] Match found (full): "${alt.transcript}" matches "${expected}"`);
+      return alt;
+    }
+  }
+
+  console.log(`[Matcher] No match found for "${expected}" in alternatives:`,
+    alternatives.map(a => a.transcript).join(', '));
+  return null;
+}
