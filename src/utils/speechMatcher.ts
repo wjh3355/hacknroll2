@@ -121,7 +121,8 @@ const COMMON_MISHEARS: Record<string, string[]> = {
 	red: ["read"],
 	sun: ["son"],
 	no: ["know"],
-	right: ["write"]
+	right: ["write"],
+	duck: ["knock"]
 }
 
 /**

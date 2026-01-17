@@ -17,7 +17,7 @@ export function WordCell({ word, isHighlighted }: WordCellProps) {
     <div
       className={`word-cell ${isHighlighted ? 'highlighted' : ''} ${getStatusClass()}`}
     >
-      {word.text}
+      {word.emoji}
     </div>
   );
 }
