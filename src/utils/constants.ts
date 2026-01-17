@@ -1,7 +1,7 @@
 import type { GameConfig } from "../types/game"
 
 export const GAME_CONFIG: GameConfig = {
-	initialBpm: 12, // 12 BPM = 5 seconds per beat (for debugging)
+	initialBpm: 30, // 60 BPM = 1 second per beat
 	bpmIncrement: 10,
 	maxBpm: 180,
 	wordsPerRound: 8,

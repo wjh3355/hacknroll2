@@ -57,17 +57,39 @@ export function GameScreen() {
 
   // Handle speech recognition result - use refs to avoid recreating callback
   const handleSpeechResult = useCallback(
-    (transcript: string, _isFinal: boolean, alternatives: SpeechAlternative[]) => {
-      console.log('[Game] handleSpeechResult called with:', transcript);
+    (transcript: string, isFinal: boolean, alternatives: SpeechAlternative[]) => {
+      console.log('[Game] handleSpeechResult called with:', transcript, '| Final:', isFinal);
       console.log('[Game] State:', stateRef.current, '| Already validated:', wordValidatedRef.current);
-      console.log('[Game] Checking', alternatives.length, 'alternatives against:', currentWordRef.current);
 
       if (stateRef.current !== 'playing' || wordValidatedRef.current) {
         console.log('[Game] Skipping - not playing or already validated');
         return;
       }
 
-      // Check ALL alternatives for a match
+      // For interim results, only do quick exact matching
+      if (!isFinal) {
+        const lastWord = alternatives[0]?.transcript.toLowerCase().trim().split(' ').pop() || '';
+        const expected = currentWordRef.current.toLowerCase();
+
+        // Only exact match or very close match for interim results
+        if (lastWord === expected || lastWord.includes(expected) || expected.includes(lastWord)) {
+          console.log('[Game] Quick interim match:', lastWord);
+          wordValidatedRef.current = true;
+          setLastResult('correct');
+          playCorrectRef.current();
+          dispatchRef.current({
+            type: 'ADVANCE_WORD',
+            correct: true,
+            spokenWord: lastWord,
+          });
+          resetListeningRef.current?.();
+          setTimeout(() => setLastResult(null), 300);
+        }
+        return; // Don't do full matching for interim results
+      }
+
+      // For final results, do full fuzzy matching
+      console.log('[Game] Checking', alternatives.length, 'alternatives against:', currentWordRef.current);
       const match = matchAnyAlternative(alternatives, currentWordRef.current);
 
       if (match) {

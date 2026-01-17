@@ -72,25 +72,27 @@ export function matchWord(
 	const normalizedSpoken = normalize(spoken)
 	const normalizedExpected = normalize(expected)
 
-	// Exact match
+	// Quick checks first (fastest)
 	if (normalizedSpoken === normalizedExpected) return true
-
-	// Check if spoken contains expected (for multi-word recognition)
 	if (normalizedSpoken.includes(normalizedExpected)) return true
-
-	// Check if expected is at the end of spoken
 	if (normalizedSpoken.endsWith(normalizedExpected)) return true
 
 	// Extract last word and compare
 	const lastWord = extractLastWord(normalizedSpoken)
 	if (lastWord === normalizedExpected) return true
 
-	// Fuzzy match with Levenshtein distance
-	const similarity = calculateSimilarity(lastWord, normalizedExpected)
-	if (similarity >= threshold) return true
+	// Only do fuzzy matching if we're close in length (optimization)
+	const lengthDiff = Math.abs(lastWord.length - normalizedExpected.length)
+	if (lengthDiff <= 2) {
+		const similarity = calculateSimilarity(lastWord, normalizedExpected)
+		if (similarity >= threshold) return true
+	}
 
-	// Also check similarity of full spoken text if short
-	if (normalizedSpoken.length <= normalizedExpected.length + 3) {
+	// Check full text similarity only if short
+	if (
+		normalizedSpoken.length <= normalizedExpected.length + 3 &&
+		normalizedSpoken.length <= 8
+	) {
 		const fullSimilarity = calculateSimilarity(
 			normalizedSpoken,
 			normalizedExpected
@@ -146,34 +148,23 @@ export function matchWordWithMishears(
 	expected: string,
 	threshold: number = GAME_CONFIG.speechMatchThreshold
 ): boolean {
-	// First try regular matching
-	if (matchWord(spoken, expected, threshold)) return true
+	// Normalize once for all checks
+	const normalizedSpoken = normalize(spoken)
+	const normalizedExpected = normalize(expected)
 
-	// Check if spoken is a number and expected is a word
-	if (
-		NUMBER_MAPPINGS[spoken] &&
-		NUMBER_MAPPINGS[spoken] === expected.toLowerCase()
-	) {
-		return true
-	}
+	// Quick exact match first
+	if (normalizedSpoken === normalizedExpected) return true
 
-	// Check if expected is a number and spoken is a word
-	if (
-		NUMBER_MAPPINGS[expected] &&
-		NUMBER_MAPPINGS[expected] === spoken.toLowerCase()
-	) {
-		return true
-	}
+	// Check number mappings (very fast lookup)
+	if (NUMBER_MAPPINGS[normalizedSpoken] === normalizedExpected) return true
+	if (NUMBER_MAPPINGS[normalizedExpected] === normalizedSpoken) return true
 
-	// Check if the expected word has common mishears
-	const mishears = COMMON_MISHEARS[expected.toLowerCase()]
-	if (mishears) {
-		for (const mishear of mishears) {
-			if (matchWord(spoken, mishear, threshold)) return true
-		}
-	}
+	// Check common mishears (fast array lookup)
+	const mishears = COMMON_MISHEARS[normalizedExpected]
+	if (mishears && mishears.includes(normalizedSpoken)) return true
 
-	return false
+	// Fall back to regular matching (more expensive)
+	return matchWord(spoken, expected, threshold)
 }
 
 /**
@@ -185,18 +176,19 @@ export function matchAnyAlternative(
 	expected: string,
 	threshold: number = GAME_CONFIG.speechMatchThreshold
 ): { transcript: string; confidence: number } | null {
+	const normalizedExpected = normalize(expected)
+
 	for (const alt of alternatives) {
-		// Extract last word from transcript
+		// Try matching the last word first (most common case)
 		const lastWord = extractLastWord(alt.transcript)
 
-		// Check if this alternative matches
-		if (matchWordWithMishears(lastWord, expected, threshold)) {
+		if (matchWordWithMishears(lastWord, normalizedExpected, threshold)) {
 			console.log(`[Matcher] Match found: "${lastWord}" matches "${expected}"`)
 			return alt
 		}
 
-		// Also check the full transcript
-		if (matchWordWithMishears(alt.transcript, expected, threshold)) {
+		// Try full transcript if last word didn't match
+		if (matchWordWithMishears(alt.transcript, normalizedExpected, threshold)) {
 			console.log(
 				`[Matcher] Match found (full): "${alt.transcript}" matches "${expected}"`
 			)

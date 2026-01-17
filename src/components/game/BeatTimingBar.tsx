@@ -3,7 +3,6 @@ import { useEffect, useState, useRef } from 'react';
 interface BeatTimingBarProps {
   bpm: number;
   isPlaying: boolean;
-  onBeatStart?: () => void;
 }
 
 export function BeatTimingBar({ bpm, isPlaying }: BeatTimingBarProps) {
@@ -15,6 +14,9 @@ export function BeatTimingBar({ bpm, isPlaying }: BeatTimingBarProps) {
   useEffect(() => {
     if (!isPlaying) {
       setProgress(0);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
       return;
     }
 
@@ -40,23 +42,11 @@ export function BeatTimingBar({ bpm, isPlaying }: BeatTimingBarProps) {
 
   return (
     <div className="beat-timing-container">
-      <div className="beat-timing-label">Say the word NOW!</div>
+      <div className="beat-timing-label">Time until next beat</div>
       <div className="beat-timing-bar">
-        {/* Background track */}
-        <div className="beat-timing-track">
-          {/* Green "sweet spot" zone in the middle */}
-          <div className="beat-timing-sweetspot" />
-        </div>
-        {/* Moving indicator */}
-        <div
-          className="beat-timing-indicator"
-          style={{ left: `${progress}%` }}
-        />
-      </div>
-      <div className="beat-timing-markers">
-        <span>Start</span>
-        <span>End</span>
+        <div className="beat-timing-progress" style={{ width: `${progress}%` }} />
       </div>
     </div>
   );
 }
+

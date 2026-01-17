@@ -129,16 +129,20 @@
     opacity: 0;
     transform: translate(-50%, -50%) scale(0.5);
   }
+
   20% {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1.1);
   }
+
   40% {
     transform: translate(-50%, -50%) scale(1);
   }
+
   80% {
     opacity: 1;
   }
+
   100% {
     opacity: 0;
     transform: translate(-50%, -50%) scale(0.9);
@@ -165,42 +169,20 @@
   background: #1f2937;
   border-radius: 12px;
   overflow: hidden;
+  border: 1px solid #374151;
 }
 
-.beat-timing-track {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.beat-timing-sweetspot {
-  width: 60%;
+.beat-timing-progress {
   height: 100%;
-  background: rgba(34, 197, 94, 0.3);
-  border-left: 2px solid #22c55e;
-  border-right: 2px solid #22c55e;
+  background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
+  border-radius: 12px;
+  transition: width 50ms linear;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
 }
 
-.beat-timing-indicator {
-  position: absolute;
-  top: 0;
-  width: 4px;
-  height: 100%;
-  background: #3b82f6;
-  box-shadow: 0 0 10px #3b82f6;
-  transform: translateX(-50%);
-  transition: left 16ms linear;
-}
-
-.beat-timing-markers {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.75rem;
-  color: #6b7280;
-  margin-top: 0.25rem;
-  padding: 0 0.25rem;
+color: #6b7280;
+margin-top: 0.25rem;
+padding: 0 0.25rem;
 }
 
 .beat-indicator-container {
@@ -256,8 +238,15 @@
 }
 
 @keyframes pulse-opacity {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
+
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+
+  50% {
+    opacity: 1;
+  }
 }
 
 .transcript {
@@ -335,8 +324,15 @@
 }
 
 @keyframes countdown-pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.1);
+  }
 }
 
 /* Microphone Permission */
@@ -405,8 +401,13 @@
 }
 
 @keyframes celebration {
-  from { transform: scale(1); }
-  to { transform: scale(1.1); }
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    transform: scale(1.1);
+  }
 }
 
 .final-stats {
