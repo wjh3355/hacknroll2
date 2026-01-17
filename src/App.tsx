@@ -3,6 +3,7 @@ import { MenuScreen } from './components/screens/MenuScreen';
 import { CountdownScreen } from './components/screens/CountdownScreen';
 import { GameScreen } from './components/screens/GameScreen';
 import { GameOverScreen } from './components/screens/GameOverScreen';
+import { TestScreen } from './components/screens/TestScreen';
 import './styles/game.css';
 import './styles/grid.css';
 import './App.css';
@@ -25,6 +26,17 @@ function GameRouter() {
 }
 
 function App() {
+  // Simple routing based on URL path
+  const path = window.location.pathname;
+
+  if (path === '/test') {
+    return (
+      <div className="app">
+        <TestScreen />
+      </div>
+    );
+  }
+
   return (
     <GameProvider>
       <div className="app">

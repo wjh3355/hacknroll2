@@ -22,15 +22,29 @@ export function GameScreen() {
   } = useGame();
 
   const { playBeatTick, playCorrect, playWrong, resumeContext } = useAudioPlayer();
+
+  // Get current expected word
+  const currentWord = words[currentWordIndex]?.text || '';
+
   const hasResumedAudio = useRef(false);
   const wordValidatedRef = useRef(false);
+  const resetListeningRef = useRef<(() => void) | null>(null);
+  const stateRef = useRef(state);
+  const currentWordRef = useRef(currentWord);
+  const dispatchRef = useRef(dispatch);
+  const playCorrectRef = useRef(playCorrect);
   const [lastResult, setLastResult] = useState<'correct' | 'wrong' | 'missed' | null>(null);
   const [speechError, setSpeechError] = useState<string | null>(null);
   const [showRoundNotification, setShowRoundNotification] = useState(false);
   const lastRoundRef = useRef(currentRound);
 
-  // Get current expected word
-  const currentWord = words[currentWordIndex]?.text || '';
+  // Keep refs updated
+  useEffect(() => {
+    stateRef.current = state;
+    currentWordRef.current = currentWord;
+    dispatchRef.current = dispatch;
+    playCorrectRef.current = playCorrect;
+  }, [state, currentWord, dispatch, playCorrect]);
 
   // Show notification when round changes
   useEffect(() => {
@@ -41,38 +55,41 @@ export function GameScreen() {
     }
   }, [currentRound]);
 
-  // Handle speech recognition result
+  // Handle speech recognition result - use refs to avoid recreating callback
   const handleSpeechResult = useCallback(
     (transcript: string, _isFinal: boolean, alternatives: SpeechAlternative[]) => {
       console.log('[Game] handleSpeechResult called with:', transcript);
-      console.log('[Game] State:', state, '| Already validated:', wordValidatedRef.current);
-      console.log('[Game] Checking', alternatives.length, 'alternatives against:', currentWord);
+      console.log('[Game] State:', stateRef.current, '| Already validated:', wordValidatedRef.current);
+      console.log('[Game] Checking', alternatives.length, 'alternatives against:', currentWordRef.current);
 
-      if (state !== 'playing' || wordValidatedRef.current) {
+      if (stateRef.current !== 'playing' || wordValidatedRef.current) {
         console.log('[Game] Skipping - not playing or already validated');
         return;
       }
 
       // Check ALL alternatives for a match
-      const match = matchAnyAlternative(alternatives, currentWord);
+      const match = matchAnyAlternative(alternatives, currentWordRef.current);
 
       if (match) {
         // Correct word spoken
         console.log('[Game] SUCCESS! Matched with:', match.transcript);
         wordValidatedRef.current = true;
         setLastResult('correct');
-        playCorrect();
-        dispatch({
+        playCorrectRef.current();
+        dispatchRef.current({
           type: 'ADVANCE_WORD',
           correct: true,
           spokenWord: match.transcript,
         });
 
+        // Reset speech recognition to clear the buffer
+        resetListeningRef.current?.();
+
         // Clear result indicator after a moment
         setTimeout(() => setLastResult(null), 300);
       }
     },
-    [state, currentWord, dispatch, playCorrect]
+    [] // No dependencies - use refs instead
   );
 
   const handleSpeechError = useCallback((error: string) => {
@@ -84,11 +101,17 @@ export function GameScreen() {
     transcript,
     start: startListening,
     stop: stopListening,
+    reset: resetListening,
     error: recognitionError,
   } = useSpeechRecognition({
     onResult: handleSpeechResult,
     onError: handleSpeechError,
   });
+
+  // Store reset function in ref for use in match callback
+  useEffect(() => {
+    resetListeningRef.current = resetListening;
+  }, [resetListening]);
 
   // Resume audio context on mount
   useEffect(() => {
@@ -100,18 +123,31 @@ export function GameScreen() {
 
   // Start/stop speech recognition based on game state
   useEffect(() => {
-    if (state === 'playing') {
+    console.log('[GameScreen] Speech recognition effect running, state:', state, 'isListening:', isListening);
+    if (state === 'playing' && !isListening) {
+      console.log('[GameScreen] Starting speech recognition');
       startListening();
-    } else {
+    } else if (state !== 'playing' && isListening) {
+      console.log('[GameScreen] Stopping speech recognition (state not playing)');
       stopListening();
     }
+    // Only run when state changes, not when functions change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
 
-    return () => stopListening();
-  }, [state, startListening, stopListening]);
+  // Cleanup only on actual unmount
+  useEffect(() => {
+    return () => {
+      console.log('[GameScreen] Component unmounting - stopping speech recognition');
+      stopListening();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Handle beat event
   const handleBeat = useCallback(
     (beatNumber: number) => {
+      console.log('[Game] Beat', beatNumber, '| Word validated:', wordValidatedRef.current, '| Current word:', currentWordRef.current);
       // Play the beat tick sound
       playBeatTick();
 
@@ -119,6 +155,7 @@ export function GameScreen() {
       // If we're past the first beat and the word wasn't validated, it's a miss
       if (beatNumber > 0 && !wordValidatedRef.current) {
         // Player missed the beat (didn't say anything or wrong word)
+        console.log('[Game] MISS - word not validated');
         setLastResult('missed');
         playWrong();
         dispatch({
@@ -130,6 +167,7 @@ export function GameScreen() {
       }
 
       // Reset validation flag for the new beat
+      console.log('[Game] Resetting validation flag for new beat');
       wordValidatedRef.current = false;
     },
     [playBeatTick, playWrong, dispatch]
