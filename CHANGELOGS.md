@@ -1,5 +1,23 @@
 # Changelog
 
+## Phase 2: Beat Engine & Audio
+
+### Added
+- `src/hooks/useBeatEngine.ts` - High-precision beat timing using requestAnimationFrame
+- `src/hooks/useAudioPlayer.ts` - Web Audio API for beat tick, success, and failure sounds
+- `src/components/game/BeatIndicator.tsx` - Visual beat pulse indicator
+
+### Modified
+- `src/components/screens/GameScreen.tsx` - Integrated beat engine with word highlighting
+- `src/styles/game.css` - Added beat indicator styling and test hint styles
+
+### Notes
+- Beat engine uses `performance.now()` for precise timing
+- Keyboard controls added for testing: SPACE (correct), X (wrong)
+- Game now ends if player misses a beat (doesn't respond in time)
+
+---
+
 ## Phase 1: Core Setup
 
 ### Added
